@@ -21,8 +21,8 @@
   "license": "MIT",
   "dependencies": {
     "@mastra/core": "latest",
-    "@ai-sdk/openai": "latest",
-    "ai": "latest",
+    "@ai-sdk/openai": "^0.0.66",
+    "ai": "^3.4.32",
     "zod": "latest",
     "mastra": "latest"
   },
