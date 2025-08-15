@@ -58,7 +58,7 @@ export const wordTeacherAgent = new Agent({
 - 确保内容准确性，避免误导学习者
 - 根据单词难度调整解释的深度
 `,
-  model: openai("gpt-4o"),
+  model: openai("gpt-4o-mini"), // 使用更稳定的模型版本
   tools: {
     dictionaryTool,
   },
