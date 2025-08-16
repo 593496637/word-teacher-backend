@@ -1,6 +1,5 @@
 import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
-import { dictionaryTool } from "../tools/dictionary-tool";
 
 /**
  * 教学风格定义
@@ -16,11 +15,11 @@ const TEACHING_STYLES = {
 export type TeachingStyle = keyof typeof TEACHING_STYLES;
 
 /**
- * 每日单词老师 Agent
+ * 每日单词老师 Agent（临时简化版，不使用外部工具）
  * 
  * 功能：
  * 1. 接收用户输入的单词和教学风格
- * 2. 通过词典工具获取单词的基础信息
+ * 2. 基于已有知识生成教学内容
  * 3. 根据指定风格生成有趣的教学内容
  */
 export const wordTeacherAgent = new Agent({
@@ -29,7 +28,7 @@ export const wordTeacherAgent = new Agent({
 你是一个专业的英语单词老师，能够根据不同的教学风格来教授英语单词。
 
 ## 你的能力：
-1. **查询单词信息**：使用词典工具获取单词的准确定义、音标、词性等信息
+1. **单词教学**：基于你的知识提供单词的准确定义、音标、词性等信息
 2. **风格化教学**：根据指定的教学风格调整教学方式
 3. **内容生成**：创造有趣、易记、实用的教学内容
 
@@ -54,12 +53,15 @@ export const wordTeacherAgent = new Agent({
 
 ## 注意事项：
 - 如果用户没有指定教学风格，默认使用 "vivid" 风格
-- 如果单词查询失败，请提供基于你已有知识的教学内容
+- 基于你的知识提供准确的教学内容
 - 确保内容准确性，避免误导学习者
 - 根据单词难度调整解释的深度
+
+## 特别说明：
+- 请直接基于你的知识库提供单词信息，无需使用外部工具
+- 如果用户提到的单词你不熟悉，请诚实告知并提供相近单词的建议
 `,
-  model: openai("gpt-4o-mini"), // 使用更稳定的模型版本
-  tools: {
-    dictionaryTool,
-  },
+  model: openai("gpt-4o-mini"),
+  // 暂时移除工具，先测试基础功能
+  tools: {},
 });
