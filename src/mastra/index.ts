@@ -1,12 +1,31 @@
 import { Mastra } from "@mastra/core";
 import { wordTeacherAgent } from "./agents/word-teacher-agent";
 
+// Cloudflare Workers crypto polyfill
+if (typeof crypto === 'undefined') {
+  // @ts-ignore
+  globalThis.crypto = {
+    randomUUID: () => {
+      // Simple UUID v4 implementation for Cloudflare Workers
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    },
+    getRandomValues: (array: Uint8Array) => {
+      // Simple implementation using Math.random()
+      for (let i = 0; i < array.length; i++) {
+        array[i] = Math.floor(Math.random() * 256);
+      }
+      return array;
+    }
+  };
+}
+
 /**
- * Mastra 实例配置 - 简化版本（暂时不使用 CloudflareDeployer）
+ * Mastra 实例配置 - Cloudflare Workers 兼容版本
  * 每日单词老师服务的核心配置
- * 
- * 注意：由于 CloudflareDeployer 的类型问题，我们暂时移除它
- * 可以通过环境变量在运行时配置 Cloudflare 部署
  */
 export const mastra = new Mastra({
   agents: {
