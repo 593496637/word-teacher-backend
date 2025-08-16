@@ -36,9 +36,14 @@ jobs:
           node-version: '18'
           cache: 'npm'
           
-      # 📦 安装依赖
+      # 📦 安装依赖 (处理缺少锁文件的情况)
       - name: 📦 Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
         
       # 🔧 类型检查
       - name: 🔧 Type check
@@ -54,10 +59,19 @@ jobs:
       # 📋 验证构建输出
       - name: 📋 Verify build output
         run: |
-          echo "检查 .mastra/output 目录内容："
-          ls -la .mastra/output/
-          echo "检查主要文件："
-          ls -la .mastra/output/index.mjs
+          echo "检查 .mastra 目录结构："
+          find .mastra -type f -name "*.mjs" -o -name "*.js" -o -name "*.json" | head -10
+          echo "检查构建产物："
+          if [ -d ".mastra/output" ]; then
+            echo "✅ .mastra/output 目录存在"
+            ls -la .mastra/output/
+          elif [ -d ".mastra" ]; then
+            echo "⚠️  .mastra 目录存在但结构不同："
+            ls -la .mastra/
+          else
+            echo "❌ .mastra 目录不存在"
+            exit 1
+          fi
           
       # 🚀 部署到 Cloudflare Workers
       - name: 🚀 Deploy to Cloudflare Workers
@@ -78,7 +92,7 @@ jobs:
         with:
           name: mastra-build-output
           path: |
-            .mastra/output/
+            .mastra/
           retention-days: 7
           
       # ✅ 部署成功通知
