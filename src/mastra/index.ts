@@ -1,14 +1,36 @@
 import { Mastra } from "@mastra/core";
+import { CloudflareDeployer } from "@mastra/deployer-cloudflare";
 import { wordTeacherAgent } from "./agents/word-teacher-agent";
 
 /**
- * Mastra 实例配置 - 简化版本（不使用 CloudflareDeployer）
+ * Mastra 实例配置 - 官方 Cloudflare Workers 部署方法
  * 每日单词老师服务的核心配置
  */
 export const mastra = new Mastra({
   agents: {
     wordTeacher: wordTeacherAgent,
   },
+  
+  // 官方 Cloudflare Workers 部署器配置（使用正确的 API）
+  deployer: new CloudflareDeployer({
+    // 使用 scope 参数（这是正确的）
+    scope: process.env.CLOUDFLARE_ACCOUNT_ID!,
+    projectName: "word-teacher-backend",
+    // 认证配置
+    auth: {
+      apiToken: process.env.CLOUDFLARE_API_TOKEN!,
+      apiEmail: process.env.CLOUDFLARE_API_EMAIL || "your-email@example.com",
+    },
+    // 可选：自定义域名路由
+    routes: [
+      // 如果需要自定义域名，取消注释并配置
+      // {
+      //   pattern: "api.your-domain.com/*",
+      //   zone_name: "your-domain.com",
+      //   custom_domain: true
+      // }
+    ],
+  }),
   
   // 服务器配置
   server: {
@@ -25,6 +47,7 @@ export const mastra = new Mastra({
         "https://your-frontend-domain.com",
       ],
       credentials: true,
+      // 使用正确的 CORS 参数
       allowHeaders: ["Content-Type", "Authorization"],
     },
     
