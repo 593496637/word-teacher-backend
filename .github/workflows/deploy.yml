@@ -64,40 +64,20 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
           
-      # 🔄 备用：使用 Wrangler 部署（如果 Mastra 构建失败）
-      - name: 🔄 Fallback: Create simple Worker entry
+      # 🔄 备用：创建简单 Worker
+      - name: 🔄 Fallback - Create simple Worker entry
         if: steps.mastra_build.outcome != 'success'
         run: |
           mkdir -p dist
           cat > dist/index.js << 'EOF'
-          import { mastra } from '../src/mastra/index.ts';
-          
           export default {
             async fetch(request, env, ctx) {
-              // 简单的健康检查
               const url = new URL(request.url);
               
-              if (url.pathname === '/api/health') {
-                return new Response(JSON.stringify({ 
-                  status: 'ok', 
-                  service: 'word-teacher-backend',
-                  timestamp: new Date().toISOString()
-                }), {
-                  headers: { 'Content-Type': 'application/json' }
-                });
-              }
-              
-              // 基本的单词教学 API
-              if (url.pathname === '/api/agents/wordTeacher/generate' && request.method === 'POST') {
-                const { messages } = await request.json();
-                const lastMessage = messages[messages.length - 1];
-                
-                return new Response(JSON.stringify({
-                  text: `Hello! I'm your word teacher. You said: "${lastMessage.content}". This is a simplified response while we set up the full system.`,
-                  timestamp: new Date().toISOString()
-                }), {
-                  headers: { 
-                    'Content-Type': 'application/json',
+              // CORS 处理
+              if (request.method === 'OPTIONS') {
+                return new Response(null, {
+                  headers: {
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                     'Access-Control-Allow-Headers': 'Content-Type'
@@ -105,7 +85,50 @@ jobs:
                 });
               }
               
-              return new Response('Word Teacher Backend - Cloudflare Workers', {
+              // 健康检查
+              if (url.pathname === '/api/health') {
+                return new Response(JSON.stringify({ 
+                  status: 'ok', 
+                  service: 'word-teacher-backend',
+                  timestamp: new Date().toISOString()
+                }), {
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                  }
+                });
+              }
+              
+              // 基本的单词教学 API
+              if (url.pathname === '/api/agents/wordTeacher/generate' && request.method === 'POST') {
+                try {
+                  const body = await request.json();
+                  const messages = body.messages || [];
+                  const lastMessage = messages[messages.length - 1];
+                  
+                  return new Response(JSON.stringify({
+                    text: `Hello! I'm your word teacher. You said: "${lastMessage?.content || 'nothing'}". This is a simplified response while we set up the full Mastra system.`,
+                    timestamp: new Date().toISOString()
+                  }), {
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                    }
+                  });
+                } catch (error) {
+                  return new Response(JSON.stringify({
+                    error: 'Invalid JSON in request body'
+                  }), {
+                    status: 400,
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                    }
+                  });
+                }
+              }
+              
+              return new Response('Word Teacher Backend - Cloudflare Workers (Fallback Mode)', {
                 headers: { 'Access-Control-Allow-Origin': '*' }
               });
             }
@@ -113,7 +136,7 @@ jobs:
           EOF
           
       # 🚀 备用：Wrangler 部署
-      - name: 🚀 Fallback: Deploy using Wrangler
+      - name: 🚀 Fallback - Deploy using Wrangler
         if: steps.mastra_build.outcome != 'success' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         uses: cloudflare/wrangler-action@v3
         with:
