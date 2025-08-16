@@ -1,5 +1,5 @@
 name = "word-teacher-backend"
-main = "dist/index.js"
+main = ".mastra/index.js"
 compatibility_date = "2024-01-01"
 node_compat = true
 
@@ -9,13 +9,10 @@ name = "word-teacher-backend"
 [vars]
 NODE_ENV = "production"
 
-# 环境变量配置（敏感信息通过 GitHub Secrets 和 Cloudflare Workers 环境变量设置）
-# OPENAI_API_KEY = "your-openai-api-key" # 通过 wrangler secret 设置
-
-# 自定义域名（如果需要）
-# [[routes]]
-# pattern = "api.your-domain.com/*"
-# zone_name = "your-domain.com"
+# 环境变量通过 GitHub Actions secrets 设置
+# OPENAI_API_KEY
+# CLOUDFLARE_API_TOKEN  
+# CLOUDFLARE_ACCOUNT_ID
 
 # Workers 资源限制
 [limits]
