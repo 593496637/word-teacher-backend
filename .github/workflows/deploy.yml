@@ -1,4 +1,4 @@
-name: 🚀 Deploy to Cloudflare Workers (Official Mastra Method)
+name: 🚀 Deploy to Cloudflare Workers (Wrangler Method)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main
-  # 添加手动触发功能
+  # 手动触发功能
   workflow_dispatch:
     inputs:
       environment:
@@ -22,22 +22,20 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    name: 🏗️ Build and Deploy Mastra Backend (Official Method)
+    name: 🏗️ Build and Deploy Mastra Backend (Wrangler Method)
     
     steps:
       # 📥 检出代码
       - name: 📥 Checkout
         uses: actions/checkout@v4
         
-      # 🟢 设置 Node.js (不使用缓存，因为没有 lock 文件)
+      # 🟢 设置 Node.js
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          # 暂时移除 cache，直到我们有 package-lock.json
-          # cache: 'npm'
           
-      # 📦 安装依赖 (使用 npm install 而不是 npm ci)
+      # 📦 安装依赖
       - name: 📦 Install dependencies
         run: npm install
         
@@ -53,14 +51,17 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
-      # 🚀 使用官方 Mastra CLI 部署到 Cloudflare Workers
-      - name: 🚀 Deploy using Mastra CLI
-        run: npx mastra deploy
+      # 🚀 使用 Wrangler 部署到 Cloudflare Workers
+      - name: 🚀 Deploy using Wrangler
+        uses: cloudflare/wrangler-action@v3
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+          workingDirectory: .
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
       # 📄 上传构建产物
       - name: 📄 Upload build artifacts
