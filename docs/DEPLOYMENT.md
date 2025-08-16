@@ -1,26 +1,25 @@
-# 🚀 Cloudflare Workers 部署指南
+# 🚀 官方 Mastra Cloudflare Workers 部署指南
 
-本文档详细介绍如何将每日单词老师后端（Mastra）部署到 Cloudflare Workers。
+本文档介绍如何使用**官方 Mastra CLI** 将每日单词老师后端部署到 Cloudflare Workers。
 
-## 📋 部署前准备
+## 📋 部署方法
 
-### ✅ 已完成的配置
+我们使用 **Mastra 官方推荐的部署方法**：
+- **`@mastra/deployer-cloudflare`** - 官方 Cloudflare Workers 部署器
+- **`mastra deploy`** - 官方 Mastra CLI 部署命令
 
-- [x] 添加了 Cloudflare Workers 部署依赖
-- [x] 创建了 GitHub Actions 工作流
-- [x] 配置了 Wrangler 部署文件
-- [x] 更新了 Mastra 配置支持 Workers 环境
+## ✅ 已完成的配置
 
-### 🔧 需要手动配置的步骤
-
-1. **获取 OpenAI API Key**
-2. **配置 GitHub Secrets**
-3. **配置 Cloudflare Workers 环境变量**
-4. **触发部署**
+- [x] 添加了官方 `@mastra/deployer-cloudflare` 依赖
+- [x] 在 Mastra 实例中配置了 `CloudflareDeployer`
+- [x] 创建了使用 `mastra deploy` 的 GitHub Actions 工作流
+- [x] 配置了 CORS 和服务器设置
 
 ---
 
 ## 🔑 第一步：获取 OpenAI API Key
+
+如果你还没有 OpenAI API Key：
 
 1. 前往 [OpenAI API Keys](https://platform.openai.com/api-keys)
 2. 点击 **"Create new secret key"**
@@ -31,7 +30,7 @@
 
 ## 🔧 第二步：配置 GitHub Secrets
 
-前往 GitHub 仓库设置添加以下 Secrets：
+前往 GitHub 后端仓库设置添加以下 Secrets：
 
 ### 2.1 前往仓库设置
 1. 在 GitHub 后端仓库页面点击 **"Settings"**
@@ -57,38 +56,9 @@ sk-your-openai-api-key-here
 
 ---
 
-## 🌐 第三步：配置 Cloudflare Workers 环境变量
+## 🚀 第三步：触发部署
 
-### 3.1 通过 Wrangler CLI（推荐）
-
-如果你本地有 Wrangler，可以直接设置：
-
-```bash
-# 安装 Wrangler（如果还没安装）
-npm install -g wrangler
-
-# 登录 Cloudflare
-wrangler auth login
-
-# 设置环境变量
-wrangler secret put OPENAI_API_KEY --name word-teacher-backend
-```
-
-### 3.2 通过 Cloudflare Dashboard
-
-1. 前往 [Cloudflare Workers Dashboard](https://dash.cloudflare.com/workers)
-2. 等部署完成后，找到 `word-teacher-backend` Worker
-3. 点击 **"Settings"** → **"Environment variables"**
-4. 添加环境变量：
-   - **Name**: `OPENAI_API_KEY`
-   - **Value**: `你的OpenAI API Key`
-   - **Type**: `Secret`
-
----
-
-## 🚀 第四步：触发部署
-
-### 4.1 自动部署
+### 3.1 自动部署
 
 推送代码到 main 分支会自动触发部署：
 
@@ -96,28 +66,37 @@ wrangler secret put OPENAI_API_KEY --name word-teacher-backend
 git push origin main
 ```
 
-### 4.2 手动触发
+### 3.2 手动触发
 
 在 GitHub Actions 页面手动触发工作流。
 
 ---
 
-## 📊 第五步：验证部署
+## 📊 第四步：验证部署
 
-### 5.1 检查部署状态
+### 4.1 检查部署状态
 
 1. 在 GitHub **Actions** 页面查看部署日志
-2. 在 Cloudflare Workers Dashboard 查看 Worker 状态
+2. 查看构建过程：
+   ```
+   📦 Install dependencies
+   🔧 Type check  
+   🏗️ Build Mastra project (npx mastra build)
+   🚀 Deploy using Mastra CLI (npx mastra deploy)
+   ```
 
-### 5.2 测试 API 端点
+### 4.2 获取 Worker URL
 
-部署成功后，你的 API 将在以下地址可用：
+部署成功后，在 GitHub Actions 日志中找到你的 Worker URL：
 
 ```
 https://word-teacher-backend.your-subdomain.workers.dev
 ```
 
-测试健康检查：
+### 4.3 测试 API 端点
+
+测试主要的 API 端点：
+
 ```bash
 curl https://word-teacher-backend.your-subdomain.workers.dev/api/agents/wordTeacher/generate \
   -X POST \
@@ -126,7 +105,7 @@ curl https://word-teacher-backend.your-subdomain.workers.dev/api/agents/wordTeac
     "messages": [
       {
         "role": "user", 
-        "content": "测试连接"
+        "content": "请用幽默的方式教我单词 serendipity"
       }
     ]
   }'
@@ -134,23 +113,28 @@ curl https://word-teacher-backend.your-subdomain.workers.dev/api/agents/wordTeac
 
 ---
 
-## 🌐 第六步：配置自定义域名（可选）
+## 🌐 第五步：配置自定义域名（可选）
 
-### 6.1 在 Cloudflare Workers 中添加自定义域名
+### 5.1 在 Mastra 配置中添加自定义域名
 
-1. 在 Worker 设置中点击 **"Custom domains"**
-2. 点击 **"Add custom domain"**
-3. 输入域名（如：`api.your-domain.com`）
-4. Cloudflare 会自动配置 DNS
+更新 `src/mastra/index.ts` 中的 routes 配置：
 
-### 6.2 更新 Wrangler 配置
+```typescript
+routes: [
+  {
+    pattern: "api.your-domain.com/*",
+    zone_name: "your-domain.com",
+    custom_domain: true
+  }
+]
+```
 
-如果使用自定义域名，更新 `wrangler.toml`：
+### 5.2 重新部署
 
-```toml
-[[routes]]
-pattern = "api.your-domain.com/*"
-zone_name = "your-domain.com"
+```bash
+git add .
+git commit -m "🌐 添加自定义域名配置"
+git push origin main
 ```
 
 ---
@@ -159,49 +143,39 @@ zone_name = "your-domain.com"
 
 ### 构建失败
 
-**问题**: 依赖安装失败
-**解决**: 确保 `package.json` 中包含所有必要依赖
+**问题**: `mastra build` 失败
+**解决**: 确保项目结构正确，`src/mastra/index.ts` 存在且导出了 `mastra` 实例
 
 **问题**: TypeScript 编译错误
 **解决**: 运行 `npx tsc --noEmit` 本地检查类型错误
 
 ### 部署失败
 
-**问题**: Cloudflare API Token 无效
-**解决**: 重新生成 API Token 并更新 GitHub Secrets
+**问题**: `mastra deploy` 失败
+**解决**: 确保环境变量 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID` 设置正确
 
-**问题**: 环境变量未设置
-**解决**: 确保在 Cloudflare Workers 中设置了 `OPENAI_API_KEY`
+**问题**: 权限错误
+**解决**: 确保 Cloudflare API Token 有足够的权限操作 Workers
 
 ### 运行时错误
 
 **问题**: CORS 错误
-**解决**: 检查 Mastra 配置中的 CORS 设置
+**解决**: 检查 `src/mastra/index.ts` 中的 CORS 配置，确保包含你的前端域名
 
 **问题**: OpenAI API 调用失败
-**解决**: 验证 API Key 是否正确设置且有效
+**解决**: 验证 `OPENAI_API_KEY` 环境变量设置正确
 
 ---
 
-## 📈 性能监控
+## 📈 Mastra CLI 优势
 
-### Cloudflare Analytics
+使用官方 Mastra CLI 部署的优势：
 
-在 Cloudflare Workers Dashboard 中可以查看：
-- 请求数量和响应时间
-- 错误率统计
-- CPU 使用情况
-- 内存使用情况
-
-### 日志查看
-
-```bash
-# 查看实时日志
-wrangler tail word-teacher-backend
-
-# 查看特定时间段的日志
-wrangler tail word-teacher-backend --since 1h
-```
+✅ **官方支持** - 由 Mastra 团队维护的标准部署方法
+✅ **自动配置** - 自动生成 Cloudflare Workers 配置
+✅ **集成优化** - 针对 Mastra 应用优化的部署流程
+✅ **版本兼容** - 与 Mastra 框架版本保持同步
+✅ **简化配置** - 无需手动配置 wrangler.toml
 
 ---
 
@@ -209,18 +183,29 @@ wrangler tail word-teacher-backend --since 1h
 
 部署成功后，记录你的后端域名：
 
+**Worker URL**:
 ```
 https://word-teacher-backend.your-subdomain.workers.dev
 ```
 
-或者自定义域名：
-
+**API 端点**:
 ```
-https://api.your-domain.com
+https://word-teacher-backend.your-subdomain.workers.dev/api/agents/wordTeacher/generate
 ```
 
 我们将在下一步中使用这个地址来更新前端的 API 配置。
 
 ---
 
-*最后更新: 2025-08-16*
+## 📞 获取帮助
+
+如果遇到问题：
+
+1. 查看 GitHub Actions 构建日志
+2. 检查 [Mastra 官方文档](https://mastra.ai/en/docs/deployment/serverless-platforms/cloudflare-deployer)
+3. 确认所有环境变量都已正确设置
+4. 参考 [Mastra CLI 文档](https://mastra.ai/en/reference/cli/deploy)
+
+---
+
+*使用官方 Mastra CLI 部署方法 - 最后更新: 2025-08-16*
