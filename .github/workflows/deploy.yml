@@ -34,16 +34,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          # 移除缓存配置以避免锁文件要求
           
-      # 📦 安装依赖 (处理缺少锁文件的情况)
-      - name: 📦 Install dependencies
+      # 📦 生成锁文件并安装依赖
+      - name: 📦 Install dependencies and generate lock file
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+          echo "检查项目结构："
+          ls -la
+          echo "安装依赖并生成锁文件："
+          npm install
+          echo "验证锁文件生成："
+          ls -la package*
         
       # 🔧 类型检查
       - name: 🔧 Type check
@@ -51,7 +52,12 @@ jobs:
         
       # 🏗️ Mastra 构建
       - name: 🏗️ Build Mastra Application
-        run: npx mastra build
+        run: |
+          echo "开始 Mastra 构建..."
+          echo "检查 Mastra CLI 版本："
+          npx mastra --version || echo "无法获取版本信息"
+          echo "运行构建命令："
+          npx mastra build
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NODE_ENV: production
@@ -59,17 +65,20 @@ jobs:
       # 📋 验证构建输出
       - name: 📋 Verify build output
         run: |
-          echo "检查 .mastra 目录结构："
-          find .mastra -type f -name "*.mjs" -o -name "*.js" -o -name "*.json" | head -10
-          echo "检查构建产物："
-          if [ -d ".mastra/output" ]; then
-            echo "✅ .mastra/output 目录存在"
-            ls -la .mastra/output/
-          elif [ -d ".mastra" ]; then
-            echo "⚠️  .mastra 目录存在但结构不同："
+          echo "=== 构建后的项目结构 ==="
+          ls -la
+          echo ""
+          echo "=== 检查 .mastra 目录 ==="
+          if [ -d ".mastra" ]; then
+            echo "✅ .mastra 目录存在"
             ls -la .mastra/
+            echo ""
+            echo "=== .mastra 子目录内容 ==="
+            find .mastra -type f | head -20
           else
-            echo "❌ .mastra 目录不存在"
+            echo "❌ .mastra 目录不存在，构建可能失败"
+            echo "检查是否有其他构建输出："
+            find . -name "*.mjs" -o -name "dist" -o -name "build" | head -10
             exit 1
           fi
           
