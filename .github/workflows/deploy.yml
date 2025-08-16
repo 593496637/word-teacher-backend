@@ -1,4 +1,4 @@
-name: 🚀 Deploy to Cloudflare Workers (Wrangler Method)
+name: 🚀 Deploy to Cloudflare Workers (Official Mastra CLI)
 
 on:
   push:
@@ -22,7 +22,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    name: 🏗️ Build and Deploy Mastra Backend (Wrangler Method)
+    name: 🏗️ Build and Deploy Mastra Backend (Official CLI)
     
     steps:
       # 📥 检出代码
@@ -50,18 +50,17 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
           
-      # 🚀 使用 Wrangler 部署到 Cloudflare Workers
-      - name: 🚀 Deploy using Wrangler
-        uses: cloudflare/wrangler-action@v3
+      # 🚀 使用官方 Mastra CLI 部署
+      - name: 🚀 Deploy using Mastra CLI
+        run: npx mastra deploy
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
-          workingDirectory: .
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
           
       # 📄 上传构建产物
       - name: 📄 Upload build artifacts
