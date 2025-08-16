@@ -1,4 +1,4 @@
-name: 🚀 Deploy to Cloudflare Workers (Hybrid Method)
+name: 🚀 Deploy Mastra Backend to Cloudflare Workers
 
 on:
   push:
@@ -34,110 +34,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
           
       # 📦 安装依赖
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm ci
         
       # 🔧 类型检查
       - name: 🔧 Type check
         run: npx tsc --noEmit
         
-      # 🏗️ 尝试 Mastra 构建
-      - name: 🏗️ Try Mastra build
-        id: mastra_build
-        continue-on-error: true
+      # 🏗️ Mastra 构建
+      - name: 🏗️ Build Mastra Application
         run: npx mastra build
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
+          NODE_ENV: production
           
-      # 🚀 Mastra 部署（如果构建成功）
-      - name: 🚀 Deploy using Mastra CLI
-        if: steps.mastra_build.outcome == 'success' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
-        run: npx mastra deploy
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
-          
-      # 🔄 备用：创建简单 Worker
-      - name: 🔄 Fallback - Create simple Worker entry
-        if: steps.mastra_build.outcome != 'success'
+      # 📋 验证构建输出
+      - name: 📋 Verify build output
         run: |
-          mkdir -p dist
-          cat > dist/index.js << 'EOF'
-          export default {
-            async fetch(request, env, ctx) {
-              const url = new URL(request.url);
-              
-              // CORS 处理
-              if (request.method === 'OPTIONS') {
-                return new Response(null, {
-                  headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type'
-                  }
-                });
-              }
-              
-              // 健康检查
-              if (url.pathname === '/api/health') {
-                return new Response(JSON.stringify({ 
-                  status: 'ok', 
-                  service: 'word-teacher-backend',
-                  timestamp: new Date().toISOString()
-                }), {
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                  }
-                });
-              }
-              
-              // 基本的单词教学 API
-              if (url.pathname === '/api/agents/wordTeacher/generate' && request.method === 'POST') {
-                try {
-                  const body = await request.json();
-                  const messages = body.messages || [];
-                  const lastMessage = messages[messages.length - 1];
-                  
-                  return new Response(JSON.stringify({
-                    text: `Hello! I'm your word teacher. You said: "${lastMessage?.content || 'nothing'}". This is a simplified response while we set up the full Mastra system.`,
-                    timestamp: new Date().toISOString()
-                  }), {
-                    headers: { 
-                      'Content-Type': 'application/json',
-                      'Access-Control-Allow-Origin': '*'
-                    }
-                  });
-                } catch (error) {
-                  return new Response(JSON.stringify({
-                    error: 'Invalid JSON in request body'
-                  }), {
-                    status: 400,
-                    headers: { 
-                      'Content-Type': 'application/json',
-                      'Access-Control-Allow-Origin': '*'
-                    }
-                  });
-                }
-              }
-              
-              return new Response('Word Teacher Backend - Cloudflare Workers (Fallback Mode)', {
-                headers: { 'Access-Control-Allow-Origin': '*' }
-              });
-            }
-          };
-          EOF
+          echo "检查 .mastra/output 目录内容："
+          ls -la .mastra/output/
+          echo "检查主要文件："
+          ls -la .mastra/output/index.mjs
           
-      # 🚀 备用：Wrangler 部署
-      - name: 🚀 Fallback - Deploy using Wrangler
-        if: steps.mastra_build.outcome != 'success' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+      # 🚀 部署到 Cloudflare Workers
+      - name: 🚀 Deploy to Cloudflare Workers
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -152,8 +76,15 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: build-files
+          name: mastra-build-output
           path: |
-            .mastra/
-            dist/
+            .mastra/output/
           retention-days: 7
+          
+      # ✅ 部署成功通知
+      - name: ✅ Deployment Success
+        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        run: |
+          echo "🎉 部署成功！"
+          echo "🌐 Worker URL: https://word-teacher-backend.your-subdomain.workers.dev"
+          echo "🔗 API 端点: https://word-teacher-backend.your-subdomain.workers.dev/api/agents/wordTeacher"
