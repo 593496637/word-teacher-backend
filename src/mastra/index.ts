@@ -1,6 +1,5 @@
 import { Mastra } from "@mastra/core/mastra";
 import { wordTeacherAgent } from "./agents/word-teacher-agent";
-import { dictionaryTool } from "./tools/dictionary-tool";
 
 /**
  * Mastra 实例配置
@@ -10,9 +9,10 @@ export const mastra = new Mastra({
   agents: {
     wordTeacher: wordTeacherAgent,
   },
-  tools: {
-    dictionaryTool,
-  },
+  // 暂时移除 tools 配置，避免 schema 问题
+  // tools: {
+  //   dictionaryTool,
+  // },
   server: {
     host: process.env.HOST || "localhost",
     port: parseInt(process.env.PORT || "4111"),
