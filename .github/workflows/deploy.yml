@@ -36,15 +36,20 @@ jobs:
           node-version: '18'
           # 移除缓存配置以避免锁文件要求
           
-      # 📦 生成锁文件并安装依赖
-      - name: 📦 Install dependencies and generate lock file
+      # 📦 清理并安装依赖
+      - name: 📦 Clean install dependencies
         run: |
           echo "检查项目结构："
           ls -la
-          echo "安装依赖并生成锁文件："
+          echo "清理npm缓存和node_modules："
+          npm cache clean --force
+          rm -rf node_modules package-lock.json
+          echo "重新安装依赖："
           npm install
-          echo "验证锁文件生成："
+          echo "验证安装结果："
           ls -la package*
+          echo "验证crypto模块可用性："
+          node -e "console.log('crypto module:', typeof require('crypto'))" || echo "crypto检查失败"
         
       # 🔧 类型检查
       - name: 🔧 Type check
@@ -53,6 +58,14 @@ jobs:
       # 🏗️ Mastra 构建
       - name: 🏗️ Build Mastra Application
         run: |
+          echo "=== 准备 Mastra 构建 ==="
+          echo "检查 Node.js 环境："
+          node --version
+          npm --version
+          echo "检查 crypto 模块："
+          node -e "console.log('crypto available:', !!global.crypto || !!require('crypto'))"
+          echo "检查环境变量："
+          echo "NODE_ENV: $NODE_ENV"
           echo "开始 Mastra 构建..."
           echo "检查 Mastra CLI 版本："
           npx mastra --version || echo "无法获取版本信息"
@@ -61,6 +74,8 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NODE_ENV: production
+          # 强制启用Node.js crypto模块兼容性
+          NODE_OPTIONS: "--experimental-global-webcrypto"
           
       # 📋 验证构建输出
       - name: 📋 Verify build output
