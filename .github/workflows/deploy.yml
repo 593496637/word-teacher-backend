@@ -1,4 +1,4 @@
-name: 🚀 Deploy to Cloudflare Workers
+name: 🚀 Deploy to Cloudflare Workers (Official Mastra Method)
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    name: 🏗️ Build and Deploy Mastra Backend
+    name: 🏗️ Build and Deploy Mastra Backend (Official Method)
     
     steps:
       # 📥 检出代码
@@ -33,23 +33,22 @@ jobs:
       - name: 🔧 Type check
         run: npx tsc --noEmit
         
-      # 🏗️ 构建项目
+      # 🏗️ 构建 Mastra 项目
       - name: 🏗️ Build Mastra project
-        run: npm run build
+        run: npx mastra build
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
-      # 🚀 部署到 Cloudflare Workers
-      - name: 🚀 Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
+      # 🚀 使用官方 Mastra CLI 部署到 Cloudflare Workers
+      - name: 🚀 Deploy using Mastra CLI
+        run: npx mastra deploy
         if: github.ref == 'refs/heads/main'
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
-          workingDirectory: .
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
       # 📄 上传构建产物
       - name: 📄 Upload build artifacts
@@ -57,5 +56,5 @@ jobs:
         if: always()
         with:
           name: build-files
-          path: dist/
+          path: .mastra/
           retention-days: 7
