@@ -11,24 +11,10 @@ export const mastra = new Mastra({
     wordTeacher: wordTeacherAgent,
   },
   
-  // 官方 Cloudflare Workers 部署器配置
+  // 官方 Cloudflare Workers 部署器配置（最简配置）
   deployer: new CloudflareDeployer({
-    // 使用正确的参数名称
     projectName: "word-teacher-backend",
-    // 认证配置
-    auth: {
-      apiToken: process.env.CLOUDFLARE_API_TOKEN!,
-      accountId: process.env.CLOUDFLARE_ACCOUNT_ID!,
-    },
-    // 可选：自定义域名路由
-    routes: [
-      // 如果需要自定义域名，取消注释并配置
-      // {
-      //   pattern: "api.your-domain.com/*",
-      //   zone_name: "your-domain.com",
-      //   custom_domain: true
-      // }
-    ],
+    // 其他配置通过环境变量传递
   }),
   
   // 服务器配置
@@ -46,8 +32,8 @@ export const mastra = new Mastra({
         "https://your-frontend-domain.com",
       ],
       credentials: true,
-      // 移除 methods - 使用默认值
-      allowedHeaders: ["Content-Type", "Authorization"],
+      // 使用正确的参数名
+      allowHeaders: ["Content-Type", "Authorization"],
     },
     
     // 构建配置
