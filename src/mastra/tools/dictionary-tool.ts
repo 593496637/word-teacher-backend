@@ -35,7 +35,10 @@ export const dictionaryTool = createTool({
     }).optional().describe("单词数据"),
     error: z.string().optional().describe("错误信息"),
   }),
-  execute: async ({ word }) => {
+  execute: async (context) => {
+    // 正确访问参数
+    const { word } = context.input;
+    
     try {
       console.log(`正在查询单词: ${word}`);
       
