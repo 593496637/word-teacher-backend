@@ -1,21 +1,14 @@
 import { Mastra } from "@mastra/core";
-import { CloudflareDeployer } from "@mastra/deployer-cloudflare";
 import { wordTeacherAgent } from "./agents/word-teacher-agent";
 
 /**
- * Mastra 实例配置 - 官方 Cloudflare Workers 部署方法
+ * Mastra 实例配置 - 简化版本（不使用 CloudflareDeployer）
  * 每日单词老师服务的核心配置
  */
 export const mastra = new Mastra({
   agents: {
     wordTeacher: wordTeacherAgent,
   },
-  
-  // 官方 Cloudflare Workers 部署器配置（最简配置）
-  deployer: new CloudflareDeployer({
-    projectName: "word-teacher-backend",
-    // 其他配置通过环境变量传递
-  }),
   
   // 服务器配置
   server: {
@@ -32,7 +25,6 @@ export const mastra = new Mastra({
         "https://your-frontend-domain.com",
       ],
       credentials: true,
-      // 使用正确的参数名
       allowHeaders: ["Content-Type", "Authorization"],
     },
     
