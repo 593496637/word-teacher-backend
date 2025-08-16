@@ -7,6 +7,7 @@
     "dev": "mastra dev",
     "build": "mastra build",
     "start": "node dist/index.js",
+    "deploy": "mastra deploy",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -15,12 +16,14 @@
     "agent",
     "word-teacher",
     "english",
-    "education"
+    "education",
+    "cloudflare-workers"
   ],
   "author": "593496637",
   "license": "MIT",
   "dependencies": {
     "@mastra/core": "latest",
+    "@mastra/deployer-cloudflare": "latest",
     "@ai-sdk/openai": "^0.0.66",
     "ai": "^3.4.32",
     "zod": "latest",
@@ -28,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
   }
 }
