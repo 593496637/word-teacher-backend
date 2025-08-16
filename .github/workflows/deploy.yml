@@ -29,16 +29,17 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
         
-      # 🟢 设置 Node.js
+      # 🟢 设置 Node.js (不使用缓存，因为没有 lock 文件)
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          # 暂时移除 cache，直到我们有 package-lock.json
+          # cache: 'npm'
           
-      # 📦 安装依赖
+      # 📦 安装依赖 (使用 npm install 而不是 npm ci)
       - name: 📦 Install dependencies
-        run: npm ci
+        run: npm install
         
       # 🔧 类型检查
       - name: 🔧 Type check
