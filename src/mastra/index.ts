@@ -13,13 +13,12 @@ export const mastra = new Mastra({
   
   // 官方 Cloudflare Workers 部署器配置
   deployer: new CloudflareDeployer({
-    // Cloudflare Account ID
-    scope: process.env.CLOUDFLARE_ACCOUNT_ID!,
-    // Worker 项目名称
+    // 使用正确的参数名称
     projectName: "word-teacher-backend",
     // 认证配置
     auth: {
       apiToken: process.env.CLOUDFLARE_API_TOKEN!,
+      accountId: process.env.CLOUDFLARE_ACCOUNT_ID!,
     },
     // 可选：自定义域名路由
     routes: [
@@ -47,7 +46,7 @@ export const mastra = new Mastra({
         "https://your-frontend-domain.com",
       ],
       credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      // 移除 methods - 使用默认值
       allowedHeaders: ["Content-Type", "Authorization"],
     },
     
