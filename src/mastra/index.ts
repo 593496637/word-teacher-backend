@@ -24,5 +24,9 @@ export const mastra = new Mastra({
   },
 });
 
-// 导出类型
-export type MastraInstance = typeof mastra;
+// 导出类型 - 使用兼容Mastra构建器的语法
+export { mastra };
+export interface MastraInstance {
+  agents: typeof mastra.agents;
+  server: typeof mastra.server;
+}
