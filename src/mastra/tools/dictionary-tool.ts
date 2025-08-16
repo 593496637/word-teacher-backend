@@ -35,8 +35,8 @@ export const dictionaryTool = createTool({
     }).optional().describe("单词数据"),
     error: z.string().optional().describe("错误信息"),
   }),
-  execute: async ({ word }) => {
-    // 直接使用解构参数（原始方式）
+  execute: async ({ context: { word } }) => {
+    // 使用正确的 Mastra Tool API - 从 context 中解构参数
     try {
       console.log(`正在查询单词: ${word}`);
       
