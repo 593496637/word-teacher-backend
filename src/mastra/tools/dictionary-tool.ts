@@ -16,7 +16,23 @@ export const dictionaryTool = createTool({
   }),
   outputSchema: z.object({
     success: z.boolean().describe("查询是否成功"),
-    data: z.any().optional().describe("单词数据"),
+    data: z.object({
+      word: z.string(),
+      phonetic: z.string(),
+      origin: z.string(),
+      meanings: z.array(z.object({
+        partOfSpeech: z.string(),
+        definitions: z.array(z.object({
+          definition: z.string(),
+          example: z.string(),
+          synonyms: z.array(z.string()),
+          antonyms: z.array(z.string()),
+        })),
+        synonyms: z.array(z.string()),
+        antonyms: z.array(z.string()),
+      })),
+      sourceUrls: z.array(z.string()),
+    }).optional().describe("单词数据"),
     error: z.string().optional().describe("错误信息"),
   }),
   execute: async ({ word }) => {
