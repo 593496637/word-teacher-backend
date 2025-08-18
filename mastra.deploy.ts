@@ -1,8 +1,8 @@
-import { createCloudflareDeployer } from '@mastra/deployer-cloudflare';
+import { CloudflareDeployer } from '@mastra/deployer-cloudflare';
 
-export const deployer = createCloudflareDeployer({
+export const deployer = new CloudflareDeployer({
   // 项目名称（将成为 Workers 的名称）
-  name: 'word-teacher-backend',
+  projectName: 'word-teacher-backend',
   
   // 环境变量配置
   env: {
@@ -10,24 +10,13 @@ export const deployer = createCloudflareDeployer({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
   
-  // Workers 配置
-  workers: {
-    // 兼容模式
-    compatibility_date: '2024-01-01',
-    
-    // Node.js 兼容性
-    node_compat: true,
-    
-    // 内存限制
-    limits: {
-      cpu_ms: 10000,
-      memory_mb: 128
-    }
-  },
-  
-  // 自定义域名（可选）
+  // 自定义域名配置 - lkkblog7.top
   routes: [
-    // 如果你有自定义域名，可以在这里配置
-    // { pattern: 'api.your-domain.com/*', zone_name: 'your-domain.com' }
+    // 配置 API 路由到自定义域名
+    { 
+      pattern: 'lkkblog7.top/api/*', 
+      zone_name: 'lkkblog7.top',
+      custom_domain: true 
+    }
   ]
 });
