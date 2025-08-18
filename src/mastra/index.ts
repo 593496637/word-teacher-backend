@@ -3,7 +3,26 @@ import { CloudflareDeployer } from "@mastra/deployer-cloudflare";
 import { wordTeacherAgent } from "./agents/word-teacher-agent";
 
 /**
- * Mastra 实例配置 - 纯净版本
+ * 环境感知的服务器配置
+ * 开发环境: localhost:4111
+ * 生产环境: 0.0.0.0:8787
+ */
+const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE_ENV === undefined;
+
+const serverConfig = {
+  // 环境感知的主机和端口配置
+  host: process.env.HOST || (isDevelopment ? "localhost" : "0.0.0.0"),
+  port: parseInt(process.env.PORT || (isDevelopment ? "4111" : "8787")),
+  
+  // 简化的 CORS 配置
+  cors: {
+    origin: "*", // 简化为允许所有来源
+    credentials: false,
+  },
+};
+
+/**
+ * Mastra 实例配置 - 环境感知版本
  * 每日单词老师服务的核心配置
  */
 export const mastra = new Mastra({
@@ -11,18 +30,8 @@ export const mastra = new Mastra({
     wordTeacher: wordTeacherAgent,
   },
   
-  // 服务器配置
-  server: {
-    // Cloudflare Workers 环境适配
-    host: "0.0.0.0",
-    port: 8787,
-    
-    // 简化的 CORS 配置
-    cors: {
-      origin: "*", // 简化为允许所有来源
-      credentials: false,
-    },
-  },
+  // 环境感知的服务器配置
+  server: serverConfig,
   
   // Cloudflare 部署配置
   deployer: new CloudflareDeployer({
