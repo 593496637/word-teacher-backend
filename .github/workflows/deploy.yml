@@ -29,12 +29,13 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
         
-      # 🟢 设置 Node.js
+      # 🟢 设置 Node.js（固定版本以确保兼容性）
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          # 移除缓存配置以避免锁文件要求
+          node-version: '20.x'
+          cache: 'npm'
+          # 使用Node.js 20.x确保与Mastra和依赖的兼容性
           
       # 📦 清理并安装依赖
       - name: 📦 Clean install dependencies
@@ -117,37 +118,15 @@ jobs:
             exit 1
           fi
           
-      # 🔧 安装最新版 Wrangler CLI
-      - name: 🔧 Install latest Wrangler CLI
-        run: |
-          echo "安装最新版 Wrangler 4.x..."
-          npm install -g wrangler@latest
-          echo "验证 Wrangler 版本："
-          wrangler --version
-          
-      # ⚙️ 验证Wrangler配置
-      - name: ⚙️ Verify Wrangler configuration
-        run: |
-          echo "当前wrangler.toml配置："
-          cat wrangler.toml
-          echo ""
-          echo "验证入口文件存在："
-          if [ -f ".mastra/output/index.mjs" ]; then
-            echo "✅ 入口文件存在: .mastra/output/index.mjs"
-          else
-            echo "❌ 入口文件不存在: .mastra/output/index.mjs"
-            exit 1
-          fi
-          
-      # 🚀 部署到 Cloudflare Workers
-      - name: 🚀 Deploy to Cloudflare Workers
+      # 🚀 使用 Mastra 官方部署到 Cloudflare Workers
+      - name: 🚀 Deploy using Mastra CLI
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
-          workingDirectory: .
+        run: |
+          echo "使用 Mastra 官方 CLI 部署到 Cloudflare Workers..."
+          echo "验证构建输出："
+          ls -la .mastra/output/
+          echo "开始部署..."
+          npx mastra deploy
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           
