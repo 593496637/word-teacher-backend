@@ -118,6 +118,16 @@ jobs:
             exit 1
           fi
           
+      # 📄 上传构建产物（在部署前保存）
+      - name: 📄 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mastra-build-output
+          path: |
+            .mastra/output/
+          retention-days: 7
+          
       # 🚀 使用 Mastra 官方部署到 Cloudflare Workers
       - name: 🚀 Deploy using Mastra CLI
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -129,16 +139,6 @@ jobs:
           npx mastra deploy
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          
-      # 📄 上传构建产物
-      - name: 📄 Upload build artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: mastra-build-output
-          path: |
-            .mastra/
-          retention-days: 7
           
       # ✅ 部署成功通知
       - name: ✅ Deployment Success
