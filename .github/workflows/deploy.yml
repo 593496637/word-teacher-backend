@@ -117,6 +117,14 @@ jobs:
             exit 1
           fi
           
+      # 🔧 安装最新版 Wrangler CLI
+      - name: 🔧 Install latest Wrangler CLI
+        run: |
+          echo "安装最新版 Wrangler 4.x..."
+          npm install -g wrangler@latest
+          echo "验证 Wrangler 版本："
+          wrangler --version
+          
       # ⚙️ 验证Wrangler配置
       - name: ⚙️ Verify Wrangler configuration
         run: |
@@ -134,7 +142,7 @@ jobs:
       # 🚀 部署到 Cloudflare Workers
       - name: 🚀 Deploy to Cloudflare Workers
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
