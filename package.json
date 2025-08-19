@@ -8,6 +8,8 @@
     "build": "mastra build",
     "start": "node dist/index.js",
     "deploy": "mastra deploy",
+    "setup": "chmod +x setup.sh && ./setup.sh",
+    "type-check": "npx tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -39,7 +41,6 @@
   "browser": {
     "crypto": "crypto-browserify"
   },
-
   "engines": {
     "node": ">=18.0.0"
   }
