@@ -53,8 +53,6 @@ jobs:
           npm install
           echo "验证安装结果："
           ls -la package*
-          echo "验证crypto模块可用性："
-          node -e "console.log('crypto module:', typeof require('crypto'))" || echo "crypto检查失败"
         
       # 🔧 类型检查
       - name: 🔧 Type check
@@ -68,14 +66,7 @@ jobs:
           echo "检查 Node.js 环境："
           node --version
           npm --version
-          echo "检查 crypto 模块："
-          node -e "console.log('crypto available:', !!global.crypto || !!require('crypto'))"
-          echo "检查环境变量："
-          echo "NODE_ENV: $NODE_ENV"
           echo "开始 Mastra 构建..."
-          echo "检查 Mastra CLI 版本："
-          npx mastra --version || echo "无法获取版本信息"
-          echo "运行构建命令："
           npx mastra build
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -97,6 +88,8 @@ jobs:
             if [ -f ".mastra/output/index.mjs" ]; then
               echo "✅ 入口文件存在: .mastra/output/index.mjs"
               echo "文件大小: $(du -h .mastra/output/index.mjs | cut -f1)"
+              echo "文件前几行:"
+              head -10 .mastra/output/index.mjs
             else
               echo "❌ 入口文件不存在: .mastra/output/index.mjs"
               exit 1
@@ -118,41 +111,54 @@ jobs:
             .mastra/output/
           retention-days: 7
           
-      # 🚀 部署到 Cloudflare Workers
-      - name: 🚀 Deploy to Cloudflare Workers
+      # 🚀 主要部署方案：使用 Mastra CLI
+      - name: 🚀 Deploy using Mastra CLI
+        id: mastra_deploy
+        continue-on-error: true
         if: |
           (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
           (github.event_name == 'workflow_dispatch') ||
           (github.event_name == 'workflow_dispatch' && inputs.force_deploy == 'true')
         run: |
           echo "使用 Mastra CLI 部署到 Cloudflare Workers..."
+          echo "验证环境变量："
+          echo "CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:0:8}..."
+          echo "CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:0:8}..."
+          echo "OPENAI_API_KEY: ${OPENAI_API_KEY:0:8}..."
           echo "验证构建输出："
           ls -la .mastra/output/
-          echo "部署环境: ${{ inputs.environment || 'production' }}"
           echo "开始部署..."
-          npx mastra deploy
+          npx mastra deploy --verbose
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           NODE_ENV: ${{ inputs.environment || 'production' }}
           
-      # 🔧 备用部署方案（使用 Wrangler）
-      - name: 🔧 Fallback Deploy with Wrangler
+      # 🔧 备用部署方案：使用 Wrangler
+      - name: 🔧 Backup Deploy with Wrangler
         if: |
-          failure() && (
+          (steps.mastra_deploy.outcome != 'success') && (
             (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
             (github.event_name == 'workflow_dispatch') ||
             (github.event_name == 'workflow_dispatch' && inputs.force_deploy == 'true')
           )
         run: |
-          echo "Mastra 部署失败，尝试使用 Wrangler 直接部署..."
+          echo "Mastra 部署失败，使用 Wrangler 备用方案..."
           echo "安装 Wrangler..."
-          npm install -g wrangler
+          npm install -g wrangler@latest
+          echo "验证 Wrangler 版本:"
+          wrangler --version
           echo "验证构建文件..."
           if [ -f ".mastra/output/index.mjs" ]; then
+            echo "✅ 构建文件存在，开始部署..."
+            echo "验证 wrangler.toml 配置:"
+            cat wrangler.toml
+            echo ""
+            echo "设置环境变量到 Worker..."
+            echo "${{ secrets.OPENAI_API_KEY }}" | wrangler secret put OPENAI_API_KEY
             echo "使用 Wrangler 部署..."
-            wrangler deploy .mastra/output/index.mjs --name word-teacher-backend
+            wrangler deploy --config wrangler.toml
           else
             echo "❌ 找不到构建文件，无法部署"
             exit 1
@@ -163,7 +169,11 @@ jobs:
           
       # ✅ 部署成功通知
       - name: ✅ Deployment Success
-        if: success() && ((github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch')
+        if: |
+          success() && (
+            (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+            (github.event_name == 'workflow_dispatch')
+          )
         run: |
           echo "🎉 部署成功！"
           echo "🌐 Worker URL: https://word-teacher-backend.你的账户名.workers.dev"
@@ -175,7 +185,11 @@ jobs:
           
       # ❌ 部署失败通知
       - name: ❌ Deployment Failed
-        if: failure() && ((github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch')
+        if: |
+          failure() && (
+            (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+            (github.event_name == 'workflow_dispatch')
+          )
         run: |
           echo "❌ 部署失败！"
           echo "🔍 请检查以下内容："
@@ -188,3 +202,4 @@ jobs:
           echo "- 检查 GitHub Secrets 配置"
           echo "- 验证 Cloudflare API Token 权限"
           echo "- 确认项目依赖版本兼容性"
+          echo "- 尝试使用备用 Wrangler 部署方案"
