@@ -60,6 +60,7 @@ npm run dev
 - ✅ **RESTful API** - 完整的 HTTP API 接口，支持前端调用
 - ✅ **类型安全** - 完整的 TypeScript 类型定义
 - ✅ **可扩展架构** - 支持后续添加更多 MCP 服务
+- ✅ **Cloudflare Workers 部署** - 一键部署到全球 CDN
 
 ## 🏗️ 技术架构
 
@@ -73,13 +74,14 @@ npm run dev
 - **AI模型**: OpenAI GPT-4o
 - **词典数据**: Free Dictionary API (完全免费，无需注册)
 - **类型系统**: TypeScript + Zod
-- **部署**: 支持 Cloudflare Workers
+- **部署**: Cloudflare Workers + GitHub Actions
 
 ## 📡 API 接口说明
 
 ### 基础信息
 
-- **服务地址**: `http://localhost:4111`
+- **本地服务地址**: `http://localhost:4111`
+- **生产环境**: `https://word-teacher-backend.你的账户名.workers.dev`
 - **API 文档**: `http://localhost:4111/api` (Mastra 自动生成)
 - **健康检查**: `GET http://localhost:4111/health`
 
@@ -120,6 +122,62 @@ Content-Type: application/json
 - `vivid` - 生动形象
 - `simple` - 简单易懂
 - `detailed` - 详细深入
+
+## 🚀 部署到 Cloudflare Workers
+
+### 🎯 快速部署 (推荐)
+
+我们提供了完整的 GitHub Actions 自动化部署流程：
+
+#### 1. 配置 GitHub Secrets
+
+进入仓库设置页面：`https://github.com/593496637/word-teacher-backend/settings/secrets/actions`
+
+添加以下 secrets：
+
+```
+CLOUDFLARE_API_TOKEN=你的_cloudflare_api_token
+CLOUDFLARE_ACCOUNT_ID=你的_cloudflare_account_id  
+OPENAI_API_KEY=你的_openai_api_key
+```
+
+#### 2. 获取 Cloudflare 凭证
+
+- **Account ID**: 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)，右侧可见
+- **API Token**: 访问 [API Tokens](https://dash.cloudflare.com/profile/api-tokens)，创建 "Cloudflare Workers:Edit" token
+
+#### 3. 手动触发部署
+
+- 进入 [GitHub Actions](https://github.com/593496637/word-teacher-backend/actions)
+- 选择 "🚀 Deploy Mastra Backend to Cloudflare Workers"
+- 点击 "Run workflow" → "Run workflow"
+
+#### 4. 自动部署
+
+推送代码到 `main` 分支会自动触发部署：
+
+```bash
+git add .
+git commit -m "🚀 Deploy to Cloudflare"
+git push origin main
+```
+
+### 📚 详细部署指南
+
+查看完整的部署文档：[DEPLOYMENT.md](./DEPLOYMENT.md)
+
+包含以下内容：
+- 本地构建和部署
+- 使用 Wrangler CLI
+- 故障排除指南
+- 监控和管理
+
+### 🌐 部署后的访问地址
+
+```
+🌐 Worker URL: https://word-teacher-backend.你的账户名.workers.dev
+🔗 API 端点: https://word-teacher-backend.你的账户名.workers.dev/api/agents/wordTeacher
+```
 
 ## 🔧 关于词典 API 说明
 
@@ -190,26 +248,24 @@ src/
 
 在 `src/mastra/tools/` 目录下创建新的工具文件。
 
-## 🚀 部署
+## 🌍 本地开发
 
-### 本地开发
+### 启动开发服务器
 
 ```bash
 npm run dev  # 启动开发服务器
 ```
 
-### Cloudflare Workers
+### 构建项目
 
 ```bash
-npm run build
-# 部署到 Cloudflare Workers
+npm run build  # 构建生产版本
 ```
 
-### Docker
+### 部署
 
 ```bash
-docker build -t word-teacher-backend .
-docker run -p 4111:4111 word-teacher-backend
+npm run deploy  # 部署到 Cloudflare Workers
 ```
 
 ## 🔗 与前端集成
@@ -221,7 +277,12 @@ docker run -p 4111:4111 word-teacher-backend
 ### 前端调用示例
 
 ```javascript
-const response = await fetch('http://localhost:4111/api/agents/wordTeacher/generate', {
+// 本地开发
+const API_BASE = 'http://localhost:4111';
+// 生产环境  
+const API_BASE = 'https://word-teacher-backend.你的账户名.workers.dev';
+
+const response = await fetch(`${API_BASE}/api/agents/wordTeacher/generate`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -237,6 +298,21 @@ const response = await fetch('http://localhost:4111/api/agents/wordTeacher/gener
 const result = await response.json();
 console.log(result.text); // 教学内容
 ```
+
+## 🚨 故障排除
+
+### 常见问题
+
+1. **构建失败**: 检查 Node.js 版本 (推荐 20.x)
+2. **部署失败**: 验证 Cloudflare API Token 和 Account ID
+3. **API 错误**: 确认 OpenAI API Key 有效
+4. **CORS 问题**: 检查前端域名配置
+
+### 获取帮助
+
+- 查看 [部署指南](./DEPLOYMENT.md)
+- 检查 [GitHub Actions 日志](https://github.com/593496637/word-teacher-backend/actions)
+- 使用 `wrangler tail` 查看实时日志
 
 ## 🤝 贡献
 
