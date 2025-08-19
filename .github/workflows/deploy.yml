@@ -88,8 +88,6 @@ jobs:
             if [ -f ".mastra/output/index.mjs" ]; then
               echo "✅ 入口文件存在: .mastra/output/index.mjs"
               echo "文件大小: $(du -h .mastra/output/index.mjs | cut -f1)"
-              echo "文件前几行:"
-              head -10 .mastra/output/index.mjs
             else
               echo "❌ 入口文件不存在: .mastra/output/index.mjs"
               exit 1
@@ -135,7 +133,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           NODE_ENV: ${{ inputs.environment || 'production' }}
           
-      # 🔧 备用部署方案：使用 Wrangler（不设置 secrets）
+      # 🔧 备用部署方案：使用 Wrangler
       - name: 🔧 Backup Deploy with Wrangler
         if: |
           (steps.mastra_deploy.outcome != 'success') && (
@@ -149,14 +147,19 @@ jobs:
           npm install -g wrangler@latest
           echo "验证 Wrangler 版本:"
           wrangler --version
+          echo "验证环境变量："
+          echo "CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}"
           echo "验证构建文件..."
           if [ -f ".mastra/output/index.mjs" ]; then
             echo "✅ 构建文件存在，开始部署..."
             echo "验证 wrangler.toml 配置:"
             cat wrangler.toml
             echo ""
-            echo "使用 Wrangler 部署（跳过 secrets 设置）..."
-            wrangler deploy --config wrangler.toml --env production
+            echo "使用 Wrangler 部署 Worker..."
+            # 指定 account-id 作为命令行参数
+            wrangler deploy --config wrangler.toml --env production --account-id "$CLOUDFLARE_ACCOUNT_ID"
+            echo ""
+            echo "✅ Worker 部署成功！"
             echo ""
             echo "⚠️  重要提醒："
             echo "Worker 已部署，但需要手动在 Cloudflare Dashboard 中设置环境变量："
@@ -190,15 +193,19 @@ jobs:
           echo "1. 访问 Cloudflare Dashboard:"
           echo "   https://dash.cloudflare.com"
           echo ""
-          echo "2. 进入 Workers & Pages -> word-teacher-backend"
+          echo "2. 进入 Workers & Pages"
+          echo "   你现在应该能看到 'word-teacher-backend' 项目"
           echo ""
-          echo "3. 进入 Settings -> Variables"
+          echo "3. 点击 'word-teacher-backend' 进入项目"
           echo ""
-          echo "4. 添加环境变量:"
+          echo "4. 进入 Settings -> Variables"
+          echo ""
+          echo "5. 添加环境变量:"
           echo "   名称: OPENAI_API_KEY"
           echo "   值: 你的_openai_api_key"
+          echo "   选择: Encrypt"
           echo ""
-          echo "5. 点击 'Save and Deploy'"
+          echo "6. 点击 'Save and Deploy'"
           echo ""
           echo "设置完成后，API 端点将在以下地址可用:"
           echo "🔗 https://word-teacher-backend.你的账户名.workers.dev/api/agents/wordTeacher"
@@ -214,13 +221,14 @@ jobs:
           echo "❌ 部署失败！"
           echo "🔍 请检查以下内容："
           echo "1. Cloudflare API Token 权限是否足够"
-          echo "2. Account ID 是否正确: 3ab6ad05b43923cfa5ba2e6de82b2c86"
+          echo "2. Account ID 是否正确设置在 GitHub Secrets 中"
           echo "3. 构建过程是否成功完成"
           echo "4. 查看上面的错误日志获取详细信息"
           echo ""
-          echo "💡 API Token 权限要求："
-          echo "- Account:Cloudflare Workers:Edit"
-          echo "- Zone:Zone:Read (可选)"
+          echo "💡 GitHub Secrets 检查清单："
+          echo "- CLOUDFLARE_API_TOKEN: 必需"
+          echo "- CLOUDFLARE_ACCOUNT_ID: 必需 (从 Dashboard 获取)"
+          echo "- OPENAI_API_KEY: 必需"
           echo ""
           echo "🔧 重新创建 API Token:"
           echo "https://dash.cloudflare.com/profile/api-tokens"
