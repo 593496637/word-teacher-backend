@@ -156,8 +156,8 @@ jobs:
             cat wrangler.toml
             echo ""
             echo "使用 Wrangler 部署 Worker..."
-            # 指定 account-id 作为命令行参数
-            wrangler deploy --config wrangler.toml --env production --account-id "$CLOUDFLARE_ACCOUNT_ID"
+            # Wrangler 会自动从环境变量读取 CLOUDFLARE_ACCOUNT_ID
+            wrangler deploy --config wrangler.toml --env production
             echo ""
             echo "✅ Worker 部署成功！"
             echo ""
