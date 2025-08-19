@@ -4,8 +4,8 @@ main = ".mastra/output/index.mjs"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# 确保使用正确的 Account ID
-account_id = "3ab6ad05b43923cfa5ba2e6de82b2c86"
+# Account ID 将从环境变量中读取，而不是硬编码
+# account_id 会从 CLOUDFLARE_ACCOUNT_ID 环境变量中获取
 
 # Node.js兼容性设置
 [build]
@@ -21,4 +21,6 @@ vars = { NODE_ENV = "production" }
 cpu_ms = 10000
 
 # 环境变量说明：
-# OPENAI_API_KEY - 将通过 wrangler secret 或 dashboard 设置
+# CLOUDFLARE_ACCOUNT_ID - 通过 GitHub Secrets 设置
+# CLOUDFLARE_API_TOKEN - 通过 GitHub Secrets 设置
+# OPENAI_API_KEY - 将在 Worker 部署后通过 Dashboard 设置
