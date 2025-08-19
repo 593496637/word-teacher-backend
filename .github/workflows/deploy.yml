@@ -126,7 +126,8 @@ jobs:
           echo "验证构建输出："
           ls -la .mastra/output/
           echo "开始部署..."
-          npx mastra deploy --verbose
+          # 移除 --verbose 参数，因为 mastra deploy 不支持
+          npx mastra deploy
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -156,7 +157,7 @@ jobs:
             cat wrangler.toml
             echo ""
             echo "使用 Wrangler 部署 Worker..."
-            # Wrangler 会自动从环境变量读取 CLOUDFLARE_ACCOUNT_ID
+            # 确保部署到正确的环境
             wrangler deploy --config wrangler.toml --env production
             echo ""
             echo "✅ Worker 部署成功！"
@@ -176,6 +177,26 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
+      # 🔍 验证部署结果
+      - name: 🔍 Verify Deployment
+        if: |
+          (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+          (github.event_name == 'workflow_dispatch')
+        run: |
+          echo "🔍 验证部署结果..."
+          echo "测试 Worker 是否可访问..."
+          # 等待几秒让部署生效
+          sleep 10
+          # 尝试访问 Worker
+          echo "尝试访问 Worker..."
+          if curl -f --max-time 30 "https://word-teacher-backend.$(echo $CLOUDFLARE_ACCOUNT_ID | cut -c1-8).workers.dev" > /dev/null 2>&1; then
+            echo "✅ Worker 可访问！"
+          else
+            echo "⚠️  Worker 可能还在部署中，或者需要手动检查"
+          fi
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          
       # ✅ 部署成功通知
       - name: ✅ Deployment Success
         if: |
@@ -185,30 +206,26 @@ jobs:
           )
         run: |
           echo "🎉 Worker 部署成功！"
-          echo "🌐 Worker URL: https://word-teacher-backend.你的账户名.workers.dev"
           echo ""
-          echo "⚠️  重要：需要设置环境变量"
-          echo "请按以下步骤完成配置："
+          echo "📋 下一步操作："
+          echo "1. 检查 Cloudflare Dashboard:"
+          echo "   https://dash.cloudflare.com → Workers & Pages"
           echo ""
-          echo "1. 访问 Cloudflare Dashboard:"
-          echo "   https://dash.cloudflare.com"
+          echo "2. 如果看到 'word-teacher-backend' 项目："
+          echo "   ✅ 部署成功！点击进入项目"
           echo ""
-          echo "2. 进入 Workers & Pages"
-          echo "   你现在应该能看到 'word-teacher-backend' 项目"
-          echo ""
-          echo "3. 点击 'word-teacher-backend' 进入项目"
-          echo ""
-          echo "4. 进入 Settings -> Variables"
-          echo ""
-          echo "5. 添加环境变量:"
+          echo "3. 设置环境变量:"
+          echo "   Settings → Variables → Add variable"
           echo "   名称: OPENAI_API_KEY"
           echo "   值: 你的_openai_api_key"
           echo "   选择: Encrypt"
+          echo "   点击: Save and Deploy"
           echo ""
-          echo "6. 点击 'Save and Deploy'"
+          echo "4. 测试 API:"
+          echo "   🌐 Worker URL: https://word-teacher-backend.你的账户名.workers.dev"
+          echo "   🔗 API 端点: https://word-teacher-backend.你的账户名.workers.dev/api/agents/wordTeacher"
           echo ""
-          echo "设置完成后，API 端点将在以下地址可用:"
-          echo "🔗 https://word-teacher-backend.你的账户名.workers.dev/api/agents/wordTeacher"
+          echo "如果在 Dashboard 中没有看到项目，请重新运行部署或查看错误日志。"
           
       # ❌ 部署失败通知
       - name: ❌ Deployment Failed
