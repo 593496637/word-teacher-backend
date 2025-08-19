@@ -18,6 +18,11 @@ on:
         options:
           - production
           - staging
+      force_deploy:
+        description: 'Force deployment even on PR'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build-and-deploy:
@@ -35,7 +40,6 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
-          # 使用Node.js 20.x确保与Mastra和依赖的兼容性
           
       # 📦 清理并安装依赖
       - name: 📦 Clean install dependencies
@@ -56,10 +60,9 @@ jobs:
       - name: 🔧 Type check
         run: npx tsc --noEmit
         
-      # 🏗️ Mastra 构建 (带备选方案)
-      - name: 🏗️ Build Mastra Application (with fallback)
+      # 🏗️ Mastra 构建
+      - name: 🏗️ Build Mastra Application
         id: mastra_build
-        continue-on-error: true
         run: |
           echo "=== 准备 Mastra 构建 ==="
           echo "检查 Node.js 环境："
@@ -77,20 +80,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NODE_ENV: production
-          # 强制启用Node.js crypto模块兼容性
           NODE_OPTIONS: "--experimental-global-webcrypto"
-          
-      # 🔄 处理构建失败情况
-      - name: 🔄 Handle build failure
-        if: steps.mastra_build.outcome != 'success'
-        run: |
-          echo "❌ Mastra构建失败"
-          echo "请检查构建日志以了解详细错误信息"
-          echo "常见解决方案："
-          echo "1. 检查源代码语法错误"
-          echo "2. 验证依赖项安装"
-          echo "3. 确保环境变量设置正确"
-          exit 1
           
       # 📋 验证构建输出
       - name: 📋 Verify build output
@@ -118,7 +108,7 @@ jobs:
             exit 1
           fi
           
-      # 📄 上传构建产物（在部署前保存）
+      # 📄 上传构建产物
       - name: 📄 Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -128,22 +118,73 @@ jobs:
             .mastra/output/
           retention-days: 7
           
-      # 🚀 使用 Mastra 官方部署到 Cloudflare Workers
-      - name: 🚀 Deploy using Mastra CLI
-        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+      # 🚀 部署到 Cloudflare Workers
+      - name: 🚀 Deploy to Cloudflare Workers
+        if: |
+          (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+          (github.event_name == 'workflow_dispatch') ||
+          (github.event_name == 'workflow_dispatch' && inputs.force_deploy == 'true')
         run: |
-          echo "使用 Mastra 官方 CLI 部署到 Cloudflare Workers..."
+          echo "使用 Mastra CLI 部署到 Cloudflare Workers..."
           echo "验证构建输出："
           ls -la .mastra/output/
+          echo "部署环境: ${{ inputs.environment || 'production' }}"
           echo "开始部署..."
           npx mastra deploy
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NODE_ENV: ${{ inputs.environment || 'production' }}
+          
+      # 🔧 备用部署方案（使用 Wrangler）
+      - name: 🔧 Fallback Deploy with Wrangler
+        if: |
+          failure() && (
+            (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+            (github.event_name == 'workflow_dispatch') ||
+            (github.event_name == 'workflow_dispatch' && inputs.force_deploy == 'true')
+          )
+        run: |
+          echo "Mastra 部署失败，尝试使用 Wrangler 直接部署..."
+          echo "安装 Wrangler..."
+          npm install -g wrangler
+          echo "验证构建文件..."
+          if [ -f ".mastra/output/index.mjs" ]; then
+            echo "使用 Wrangler 部署..."
+            wrangler deploy .mastra/output/index.mjs --name word-teacher-backend
+          else
+            echo "❌ 找不到构建文件，无法部署"
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
       # ✅ 部署成功通知
       - name: ✅ Deployment Success
-        if: success() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        if: success() && ((github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch')
         run: |
           echo "🎉 部署成功！"
-          echo "🌐 Worker URL: https://word-teacher-backend.your-subdomain.workers.dev"
-          echo "🔗 API 端点: https://word-teacher-backend.your-subdomain.workers.dev/api/agents/wordTeacher"
+          echo "🌐 Worker URL: https://word-teacher-backend.你的账户名.workers.dev"
+          echo "🔗 API 端点: https://word-teacher-backend.你的账户名.workers.dev/api/agents/wordTeacher"
+          echo "📊 查看部署详情: https://dash.cloudflare.com"
+          echo ""
+          echo "🧪 测试你的 API："
+          echo "curl https://word-teacher-backend.你的账户名.workers.dev/api/agents/wordTeacher"
+          
+      # ❌ 部署失败通知
+      - name: ❌ Deployment Failed
+        if: failure() && ((github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch')
+        run: |
+          echo "❌ 部署失败！"
+          echo "🔍 请检查以下内容："
+          echo "1. Cloudflare API Token 和 Account ID 是否正确设置"
+          echo "2. OpenAI API Key 是否有效"
+          echo "3. 构建过程是否成功完成"
+          echo "4. 查看上面的错误日志获取详细信息"
+          echo ""
+          echo "💡 常见解决方案："
+          echo "- 检查 GitHub Secrets 配置"
+          echo "- 验证 Cloudflare API Token 权限"
+          echo "- 确认项目依赖版本兼容性"
