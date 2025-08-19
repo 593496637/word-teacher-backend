@@ -15,7 +15,7 @@ const TEACHING_STYLES = {
 export type TeachingStyle = keyof typeof TEACHING_STYLES;
 
 /**
- * 每日单词老师 Agent（临时简化版，不使用外部工具）
+ * 每日单词老师 Agent
  * 
  * 功能：
  * 1. 接收用户输入的单词和教学风格
@@ -61,7 +61,10 @@ export const wordTeacherAgent = new Agent({
 - 请直接基于你的知识库提供单词信息，无需使用外部工具
 - 如果用户提到的单词你不熟悉，请诚实告知并提供相近单词的建议
 `,
-  model: openai("gpt-4o-mini"),
+  // 修复：正确配置 OpenAI 模型，从环境变量读取 API Key
+  model: openai("gpt-4o-mini", {
+    apiKey: process.env.OPENAI_API_KEY,
+  }),
   // 暂时移除工具，先测试基础功能
   tools: {},
 });
