@@ -15,11 +15,8 @@ const TEACHING_STYLES = {
 export type TeachingStyle = keyof typeof TEACHING_STYLES;
 
 /**
- * 配置 OpenAI Provider，从环境变量读取 API Key
+ * 直接使用 OpenAI 模型，无需预配置 provider
  */
-const openaiProvider = openai({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 /**
  * 每日单词老师 Agent
@@ -68,8 +65,8 @@ export const wordTeacherAgent = new Agent({
 - 请直接基于你的知识库提供单词信息，无需使用外部工具
 - 如果用户提到的单词你不熟悉，请诚实告知并提供相近单词的建议
 `,
-  // 使用正确配置的 OpenAI Provider
-  model: openaiProvider("gpt-4o-mini"),
+  // 直接使用 OpenAI 模型，API Key 通过环境变量配置
+  model: openai("gpt-4o-mini"),
   // 暂时移除工具，先测试基础功能
   tools: {},
 });

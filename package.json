@@ -24,12 +24,12 @@
   "author": "593496637",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/openai": "^0.0.66",
     "@mastra/core": "latest",
     "@mastra/deployer-cloudflare": "latest",
-    "@ai-sdk/openai": "^0.0.66",
     "ai": "^3.4.32",
-    "zod": "latest",
-    "mastra": "latest"
+    "mastra": "latest",
+    "zod": "latest"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.0.0",
