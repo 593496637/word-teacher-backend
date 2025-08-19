@@ -14,10 +14,17 @@ const serverConfig = {
   host: process.env.HOST || (isDevelopment ? "localhost" : "0.0.0.0"),
   port: parseInt(process.env.PORT || (isDevelopment ? "4111" : "8787")),
   
-  // 简化的 CORS 配置
+  // 更精确的 CORS 配置
   cors: {
-    origin: "*", // 简化为允许所有来源
-    credentials: false,
+    origin: [
+      "http://localhost:5173", // Vite 开发服务器
+      "http://localhost:4173", // Vite 预览服务器
+      "https://lkkblog7.top", // 前端生产域名
+      "https://word-teacher-frontend.pages.dev", // Cloudflare Pages 默认域名
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   },
 };
 
