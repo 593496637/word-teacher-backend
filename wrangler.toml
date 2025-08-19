@@ -16,9 +16,8 @@ command = ""
 name = "word-teacher-backend"
 vars = { NODE_ENV = "production" }
 
-# Workers 资源限制
-[limits]
-cpu_ms = 10000
+# CPU 限制已移除 - 免费计划不支持自定义 CPU 限制
+# Cloudflare 免费计划将使用默认限制
 
 # 环境变量说明：
 # CLOUDFLARE_ACCOUNT_ID - 通过 GitHub Secrets 设置
