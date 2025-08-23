@@ -1,5 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
+import { Memory } from '@mastra/memory';
+import { LibSQLStore } from '@mastra/libsql';
 
 /**
  * 教学风格定义
@@ -14,9 +16,7 @@ const TEACHING_STYLES = {
 
 export type TeachingStyle = keyof typeof TEACHING_STYLES;
 
-/**
- * 直接使用 OpenAI 模型，无需预配置 provider
- */
+
 
 /**
  * 每日单词老师 Agent
@@ -65,8 +65,11 @@ export const wordTeacherAgent = new Agent({
 - 请直接基于你的知识库提供单词信息，无需使用外部工具
 - 如果用户提到的单词你不熟悉，请诚实告知并提供相近单词的建议
 `,
-  // 直接使用 OpenAI 模型，API Key 通过环境变量配置
   model: openai("gpt-4o-mini"),
-  // 暂时移除工具，先测试基础功能
   tools: {},
+  memory: new Memory({
+    storage: new LibSQLStore({
+      url: ':memory:', // 使用内存存储，与主配置保持一致
+    }),
+  }),
 });

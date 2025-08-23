@@ -1,6 +1,7 @@
-import { Mastra } from "@mastra/core";
-import { CloudflareDeployer } from "@mastra/deployer-cloudflare";
-import { wordTeacherAgent } from "./agents/word-teacher-agent";
+import { Mastra } from '@mastra/core/mastra';
+import { PinoLogger } from '@mastra/loggers';
+import { LibSQLStore } from '@mastra/libsql';
+import { wordTeacherAgent } from "./agents/word-teacher-agent.js";
 
 /**
  * 环境感知的服务器配置
@@ -18,6 +19,7 @@ const serverConfig = {
   cors: {
     origin: [
       "http://localhost:5173", // Vite 开发服务器
+      "http://localhost:5174", // Vite 开发服务器备用端口
       "http://localhost:4173", // Vite 预览服务器
       "https://lkkblog7.top", // 前端生产域名
       "https://word-teacher-frontend.pages.dev", // Cloudflare Pages 默认域名
@@ -29,7 +31,7 @@ const serverConfig = {
 };
 
 /**
- * Mastra 实例配置 - 环境感知版本
+ * Mastra 实例配置 - 基于官方标准结构
  * 每日单词老师服务的核心配置
  */
 export const mastra = new Mastra({
@@ -40,16 +42,15 @@ export const mastra = new Mastra({
   // 环境感知的服务器配置
   server: serverConfig,
   
-  // Cloudflare 部署配置
-  deployer: new CloudflareDeployer({
-    projectName: "word-teacher-backend",
-    env: {
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
-      CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID || "",
-      CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN || "",
-    },
+  // 标准存储配置 - 使用内存存储用于开发，生产环境可改为文件存储
+  storage: new LibSQLStore({
+    url: ":memory:",
+  }),
+  
+  // 标准日志配置
+  logger: new PinoLogger({
+    name: 'WordTeacher',
+    level: 'info',
   }),
 });
 
-// 导出类型 - 移除有问题的类型导出，保持简洁
-// MastraInstance 类型暂时移除以避免构建冲突
