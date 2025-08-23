@@ -33,6 +33,12 @@ jobs:
       # 📥 检出代码
       - name: 📥 Checkout
         uses: actions/checkout@v4
+          
+      # 📦 设置 pnpm (必须在 Node.js 之前)
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
         
       # 🟢 设置 Node.js（固定版本以确保兼容性）
       - name: 🟢 Setup Node.js
@@ -40,12 +46,6 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'pnpm'
-          
-      # 📦 设置 pnpm
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
           
       # 📦 清理并安装依赖
       - name: 📦 Clean install dependencies
