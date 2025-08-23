@@ -39,24 +39,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+          cache: 'pnpm'
+          
+      # 📦 设置 pnpm
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
           
       # 📦 清理并安装依赖
       - name: 📦 Clean install dependencies
         run: |
           echo "检查项目结构："
           ls -la
-          echo "清理npm缓存和node_modules："
-          npm cache clean --force
-          rm -rf node_modules package-lock.json
-          echo "重新安装依赖："
-          npm install
+          echo "使用pnpm安装依赖："
+          pnpm install --frozen-lockfile
           echo "验证安装结果："
-          ls -la package*
+          ls -la package* pnpm-lock.yaml
         
       # 🔧 类型检查
       - name: 🔧 Type check
-        run: npx tsc --noEmit
+        run: pnpm run type-check
         
       # 🏗️ Mastra 构建
       - name: 🏗️ Build Mastra Application
@@ -65,9 +68,9 @@ jobs:
           echo "=== 准备 Mastra 构建 ==="
           echo "检查 Node.js 环境："
           node --version
-          npm --version
+          pnpm --version
           echo "开始 Mastra 构建..."
-          npx mastra build
+          pnpm mastra build
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NODE_ENV: production
@@ -127,7 +130,7 @@ jobs:
           ls -la .mastra/output/
           echo "开始部署..."
           # 移除 --verbose 参数，因为 mastra deploy 不支持
-          npx mastra deploy
+          pnpm mastra deploy
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -145,7 +148,7 @@ jobs:
         run: |
           echo "Mastra 部署失败，使用 Wrangler 备用方案..."
           echo "安装 Wrangler..."
-          npm install -g wrangler@latest
+          pnpm add -g wrangler@latest
           echo "验证 Wrangler 版本:"
           wrangler --version
           echo "验证环境变量："
@@ -153,12 +156,17 @@ jobs:
           echo "验证构建文件..."
           if [ -f ".mastra/output/index.mjs" ]; then
             echo "✅ 构建文件存在，开始部署..."
-            echo "验证 wrangler.toml 配置:"
-            cat wrangler.toml
-            echo ""
-            echo "使用 Wrangler 部署 Worker..."
-            # 确保部署到正确的环境
-            wrangler deploy --config wrangler.toml --env production
+            if [ -f "wrangler.toml" ]; then
+              echo "验证 wrangler.toml 配置:"
+              cat wrangler.toml
+              echo ""
+              echo "使用 Wrangler 部署 Worker..."
+              # 确保部署到正确的环境
+              wrangler deploy --config wrangler.toml --env production
+            else
+              echo "⚠️ wrangler.toml 不存在，使用默认配置部署..."
+              wrangler deploy --name word-teacher-backend --main .mastra/output/index.mjs --compatibility-date 2024-01-01 --compatibility-flags nodejs_compat
+            fi
             echo ""
             echo "✅ Worker 部署成功！"
             echo ""
