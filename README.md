@@ -17,10 +17,6 @@ cd word-teacher-backend
 
 ```bash
 npm install
-# 或者
-pnpm install
-# 或者
-yarn install
 ```
 
 ### 3. 配置环境变量

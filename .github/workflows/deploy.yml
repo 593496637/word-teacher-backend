@@ -34,6 +34,12 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
           
+      # 📦 设置 pnpm (Mastra 构建需要)
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+        
       # 🟢 设置 Node.js（固定版本以确保兼容性）
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -51,6 +57,9 @@ jobs:
           npm ci
           echo "验证安装结果："
           ls -la package*
+          echo "确保pnpm可用于Mastra构建："
+          which pnpm
+          pnpm --version
         
       # 🔧 类型检查
       - name: 🔧 Type check
