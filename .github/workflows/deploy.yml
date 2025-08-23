@@ -44,7 +44,6 @@ jobs:
           
       # 📦 清理并安装依赖
       - name: 📦 Clean install dependencies
-        working-directory: word-teacher-backend
         run: |
           echo "检查项目结构："
           ls -la
@@ -55,13 +54,11 @@ jobs:
         
       # 🔧 类型检查
       - name: 🔧 Type check
-        working-directory: word-teacher-backend
         run: npm run type-check
         
       # 🏗️ Mastra 构建
       - name: 🏗️ Build Mastra Application
         id: mastra_build
-        working-directory: word-teacher-backend
         run: |
           echo "=== 准备 Mastra 构建 ==="
           echo "检查 Node.js 环境："
@@ -76,7 +73,6 @@ jobs:
           
       # 📋 验证构建输出
       - name: 📋 Verify build output
-        working-directory: word-teacher-backend
         run: |
           echo "=== 构建后的项目结构 ==="
           ls -la
@@ -108,14 +104,13 @@ jobs:
         with:
           name: mastra-build-output
           path: |
-            word-teacher-backend/.mastra/output/
+            .mastra/output/
           retention-days: 7
           
       # 🚀 主要部署方案：使用 Mastra CLI
       - name: 🚀 Deploy using Mastra CLI
         id: mastra_deploy
         continue-on-error: true
-        working-directory: word-teacher-backend
         if: |
           (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
           (github.event_name == 'workflow_dispatch') ||
@@ -141,7 +136,6 @@ jobs:
           
       # 🔧 备用部署方案：使用 Wrangler
       - name: 🔧 Backup Deploy with Wrangler
-        working-directory: word-teacher-backend
         if: |
           (steps.mastra_deploy.outcome != 'success') && (
             (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
