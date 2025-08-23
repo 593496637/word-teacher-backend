@@ -1,0 +1,41 @@
+{
+  "name": "word-teacher-backend",
+  "version": "1.0.0",
+  "description": "每日单词老师 Mastra 后端服务 - Daily Word Teacher Mastra Backend Service",
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "mastra build",
+    "start": "mastra start",
+    "setup": "chmod +x setup.sh && ./setup.sh",
+    "type-check": "npx tsc --noEmit",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mastra",
+    "ai",
+    "agent",
+    "word-teacher",
+    "english",
+    "education",
+    "cloudflare-workers"
+  ],
+  "author": "593496637",
+  "license": "MIT",
+  "dependencies": {
+    "@ai-sdk/openai": "^1.3.24",
+    "@mastra/core": "^0.13.2",
+    "@mastra/libsql": "^0.13.2",
+    "@mastra/loggers": "^0.10.6",
+    "@mastra/memory": "^0.12.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "mastra": "^0.10.21",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

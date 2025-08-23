@@ -1,0 +1,262 @@
+name: 🚀 Deploy Mastra Backend to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  # 手动触发功能
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      force_deploy:
+        description: 'Force deployment even on PR'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: 🏗️ Build and Deploy Mastra Backend
+    
+    steps:
+      # 📥 检出代码
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+          
+      # 🟢 设置 Node.js（固定版本以确保兼容性）
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: word-teacher-backend/package-lock.json
+          
+      # 📦 清理并安装依赖
+      - name: 📦 Clean install dependencies
+        working-directory: word-teacher-backend
+        run: |
+          echo "检查项目结构："
+          ls -la
+          echo "使用npm安装依赖："
+          npm ci
+          echo "验证安装结果："
+          ls -la package*
+        
+      # 🔧 类型检查
+      - name: 🔧 Type check
+        working-directory: word-teacher-backend
+        run: npm run type-check
+        
+      # 🏗️ Mastra 构建
+      - name: 🏗️ Build Mastra Application
+        id: mastra_build
+        working-directory: word-teacher-backend
+        run: |
+          echo "=== 准备 Mastra 构建 ==="
+          echo "检查 Node.js 环境："
+          node --version
+          npm --version
+          echo "开始 Mastra 构建..."
+          npm run build
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NODE_ENV: production
+          NODE_OPTIONS: "--experimental-global-webcrypto"
+          
+      # 📋 验证构建输出
+      - name: 📋 Verify build output
+        working-directory: word-teacher-backend
+        run: |
+          echo "=== 构建后的项目结构 ==="
+          ls -la
+          echo ""
+          echo "=== 检查 Mastra 构建输出 ==="
+          if [ -d ".mastra/output" ]; then
+            echo "✅ .mastra/output 目录存在"
+            ls -la .mastra/output/
+            echo ""
+            echo "=== 验证关键文件 ==="
+            if [ -f ".mastra/output/index.mjs" ]; then
+              echo "✅ 入口文件存在: .mastra/output/index.mjs"
+              echo "文件大小: $(du -h .mastra/output/index.mjs | cut -f1)"
+            else
+              echo "❌ 入口文件不存在: .mastra/output/index.mjs"
+              exit 1
+            fi
+          else
+            echo "❌ .mastra/output 目录不存在"
+            echo "当前 .mastra 目录内容："
+            ls -la .mastra/ || echo "❌ .mastra 目录也不存在"
+            exit 1
+          fi
+          
+      # 📄 上传构建产物
+      - name: 📄 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mastra-build-output
+          path: |
+            word-teacher-backend/.mastra/output/
+          retention-days: 7
+          
+      # 🚀 主要部署方案：使用 Mastra CLI
+      - name: 🚀 Deploy using Mastra CLI
+        id: mastra_deploy
+        continue-on-error: true
+        working-directory: word-teacher-backend
+        if: |
+          (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+          (github.event_name == 'workflow_dispatch') ||
+          (github.event_name == 'workflow_dispatch' && inputs.force_deploy == 'true')
+        run: |
+          echo "使用 Mastra CLI 部署到 Cloudflare Workers..."
+          echo "验证环境变量："
+          echo "CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:0:8}..."
+          echo "CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:0:8}..."
+          echo "OPENAI_API_KEY: ${OPENAI_API_KEY:0:8}..."
+          echo "验证构建输出："
+          ls -la .mastra/output/
+          echo "开始部署..."
+          # 安装 mastra CLI
+          npm install -g mastra
+          # 使用 mastra deploy
+          mastra deploy
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NODE_ENV: ${{ inputs.environment || 'production' }}
+          
+      # 🔧 备用部署方案：使用 Wrangler
+      - name: 🔧 Backup Deploy with Wrangler
+        working-directory: word-teacher-backend
+        if: |
+          (steps.mastra_deploy.outcome != 'success') && (
+            (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+            (github.event_name == 'workflow_dispatch') ||
+            (github.event_name == 'workflow_dispatch' && inputs.force_deploy == 'true')
+          )
+        run: |
+          echo "Mastra 部署失败，使用 Wrangler 备用方案..."
+          echo "安装 Wrangler..."
+          npm install -g wrangler@latest
+          echo "验证 Wrangler 版本:"
+          wrangler --version
+          echo "验证环境变量："
+          echo "CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}"
+          echo "验证构建文件..."
+          if [ -f ".mastra/output/index.mjs" ]; then
+            echo "✅ 构建文件存在，开始部署..."
+            if [ -f "wrangler.toml" ]; then
+              echo "验证 wrangler.toml 配置:"
+              cat wrangler.toml
+              echo ""
+              echo "使用 Wrangler 部署 Worker..."
+              # 确保部署到正确的环境
+              wrangler deploy --config wrangler.toml --env production
+            else
+              echo "⚠️ wrangler.toml 不存在，使用默认配置部署..."
+              wrangler deploy --name word-teacher-backend --main .mastra/output/index.mjs --compatibility-date 2024-01-01 --compatibility-flags nodejs_compat
+            fi
+            echo ""
+            echo "✅ Worker 部署成功！"
+            echo ""
+            echo "⚠️  重要提醒："
+            echo "Worker 已部署，但需要手动在 Cloudflare Dashboard 中设置环境变量："
+            echo "1. 访问: https://dash.cloudflare.com"
+            echo "2. 进入 Workers & Pages"
+            echo "3. 选择 'word-teacher-backend'"
+            echo "4. 进入 Settings -> Variables"
+            echo "5. 添加环境变量: OPENAI_API_KEY"
+          else
+            echo "❌ 找不到构建文件，无法部署"
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          
+      # 🔍 验证部署结果
+      - name: 🔍 Verify Deployment
+        if: |
+          (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+          (github.event_name == 'workflow_dispatch')
+        run: |
+          echo "🔍 验证部署结果..."
+          echo "测试 Worker 是否可访问..."
+          # 等待几秒让部署生效
+          sleep 10
+          # 尝试访问 Worker
+          echo "尝试访问 Worker..."
+          if curl -f --max-time 30 "https://word-teacher-backend.$(echo $CLOUDFLARE_ACCOUNT_ID | cut -c1-8).workers.dev" > /dev/null 2>&1; then
+            echo "✅ Worker 可访问！"
+          else
+            echo "⚠️  Worker 可能还在部署中，或者需要手动检查"
+          fi
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          
+      # ✅ 部署成功通知
+      - name: ✅ Deployment Success
+        if: |
+          success() && (
+            (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+            (github.event_name == 'workflow_dispatch')
+          )
+        run: |
+          echo "🎉 Worker 部署成功！"
+          echo ""
+          echo "📋 下一步操作："
+          echo "1. 检查 Cloudflare Dashboard:"
+          echo "   https://dash.cloudflare.com → Workers & Pages"
+          echo ""
+          echo "2. 如果看到 'word-teacher-backend' 项目："
+          echo "   ✅ 部署成功！点击进入项目"
+          echo ""
+          echo "3. 设置环境变量:"
+          echo "   Settings → Variables → Add variable"
+          echo "   名称: OPENAI_API_KEY"
+          echo "   值: 你的_openai_api_key"
+          echo "   选择: Encrypt"
+          echo "   点击: Save and Deploy"
+          echo ""
+          echo "4. 测试 API:"
+          echo "   🌐 Worker URL: https://word-teacher-backend.你的账户名.workers.dev"
+          echo "   🔗 API 端点: https://word-teacher-backend.你的账户名.workers.dev/api/agents/wordTeacher"
+          echo ""
+          echo "如果在 Dashboard 中没有看到项目，请重新运行部署或查看错误日志。"
+          
+      # ❌ 部署失败通知
+      - name: ❌ Deployment Failed
+        if: |
+          failure() && (
+            (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+            (github.event_name == 'workflow_dispatch')
+          )
+        run: |
+          echo "❌ 部署失败！"
+          echo "🔍 请检查以下内容："
+          echo "1. Cloudflare API Token 权限是否足够"
+          echo "2. Account ID 是否正确设置在 GitHub Secrets 中"
+          echo "3. 构建过程是否成功完成"
+          echo "4. 查看上面的错误日志获取详细信息"
+          echo ""
+          echo "💡 GitHub Secrets 检查清单："
+          echo "- CLOUDFLARE_API_TOKEN: 必需"
+          echo "- CLOUDFLARE_ACCOUNT_ID: 必需 (从 Dashboard 获取)"
+          echo "- OPENAI_API_KEY: 必需"
+          echo ""
+          echo "🔧 重新创建 API Token:"
+          echo "https://dash.cloudflare.com/profile/api-tokens"
