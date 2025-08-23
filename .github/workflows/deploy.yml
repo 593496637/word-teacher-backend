@@ -40,7 +40,7 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
-          cache-dependency-path: word-teacher-backend/package-lock.json
+          cache-dependency-path: package-lock.json
           
       # 📦 清理并安装依赖
       - name: 📦 Clean install dependencies
